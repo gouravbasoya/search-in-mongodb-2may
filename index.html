@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Grocery Product Search</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f7fa;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h2 {
+      text-align: center;
+      color: #2c3e50;
+    }
+
+    .card {
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 1100px;
+      margin: 0 auto;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .filters > div {
+      flex: 1;
+      min-width: 180px;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      background-color: #0099e5;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .section-title {
+      font-weight: bold;
+      font-size: 18px;
+      margin: 30px auto 10px;
+      max-width: 1100px;
+      color: #2c3e50;
+    }
+
+    .results {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .product-card {
+      background-color: #fff;
+      padding: 15px;
+      margin: 10px 0;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Grocery Product Search</h2>
+
+  <div class="card">
+    <div class="filters">
+      <div>
+        <label><b>Search Products</b></label>
+        <input id="searchBox" placeholder="Enter product name, brand, or quantity (1kg, 500ml)..." />
+      </div>
+      <div>
+        <label><b>Category</b></label>
+        <select id="categorySelect">
+          <option value="">All Categories</option>
+        </select>
+      </div>
+      <div>
+        <label><b>Min Price (₹)</b></label>
+        <input id="minPrice" type="number" placeholder="Min price" />
+      </div>
+      <div>
+        <label><b>Max Price (₹)</b></label>
+        <input id="maxPrice" type="number" placeholder="Max price" />
+      </div>
+      <div style="align-self: end;">
+        <button onclick="search()">Search</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="results">
+    <div class="section-title" id="suggestedTitle" style="display:none;">Suggested Products</div>
+    <div id="suggestions"></div>
+
+    <div class="section-title" id="resultsTitle" style="display:none;">Search Results</div>
+    <div id="found"></div>
+  </div>
+
+  <script>
+    const categorySelect = document.getElementById("categorySelect");
+
+    // Populate categories dynamically (could be static if needed)
+    async function populateCategories() {
+      const res = await fetch("http://localhost:8000/categories");
+      const data = await res.json();
+      data.forEach(cat => {
+        const option = document.createElement("option");
+        option.value = cat;
+        option.textContent = cat.charAt(0).toUpperCase() + cat.slice(1).replace(/_/g, ' ');
+        categorySelect.appendChild(option);
+      });
+    }
+
+    async function search() {
+      const query = document.getElementById("searchBox").value.trim();
+      const category = document.getElementById("categorySelect").value;
+      const min = document.getElementById("minPrice").value;
+      const max = document.getElementById("maxPrice").value;
+
+      const url = new URL("http://localhost:8000/search");
+      if (query) url.searchParams.append("query", query);
+      if (category) url.searchParams.append("category", category);
+      if (min) url.searchParams.append("min_price", min);
+      if (max) url.searchParams.append("max_price", max);
+
+      const res = await fetch(url);
+      const data = await res.json();
+
+      const suggestions = document.getElementById("suggestions");
+      const found = document.getElementById("found");
+      const suggestedTitle = document.getElementById("suggestedTitle");
+      const resultsTitle = document.getElementById("resultsTitle");
+
+      suggestions.innerHTML = "";
+      found.innerHTML = "";
+      suggestedTitle.style.display = "none";
+      resultsTitle.style.display = "none";
+
+      if (data.suggestions.length > 0) {
+        suggestedTitle.style.display = "block";
+        data.suggestions.forEach(item => {
+          suggestions.innerHTML += `
+            <div class="product-card">
+              <b>${item.item_name}</b><br>
+              Brand: ${item.brand_name}<br>
+              ₹${item.price}
+            </div>`;
+        });
+      }
+
+      if (data.results.length > 0) {
+        resultsTitle.style.display = "block";
+        data.results.forEach(item => {
+          found.innerHTML += `
+            <div class="product-card">
+              <b>${item.item_name}</b><br>
+              Brand: ${item.brand_name}<br>
+              ₹${item.price}
+            </div>`;
+        });
+      }
+    }
+
+    populateCategories(); // call on load
+  </script>
+</body>
+</html>
